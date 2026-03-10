@@ -1,1 +1,1244 @@
 
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Musicz — O seu player de música</title>
+<meta name="description" content="Ouça qualquer música, crie playlists, baixe offline. Grátis para Android.">
+<meta property="og:title" content="Musicz — O seu player de música">
+<meta property="og:description" content="Ouça qualquer música, crie playlists, baixe offline. Grátis para Android.">
+<meta property="og:image" content="https://i.imgur.com/placeholder.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0a0a;
+  --s1:#111111;
+  --s2:#181818;
+  --s3:#222222;
+  --orange:#ff6a00;
+  --orange2:#ff8533;
+  --glow:rgba(255,106,0,0.15);
+  --text:#ffffff;
+  --dim:#888888;
+  --dim2:#5555771;
+  --mono:'DM Mono',monospace;
+  --display:'Bebas Neue',sans-serif;
+  --body:'DM Sans',sans-serif;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--body);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* ── NOISE TEXTURE ── */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:0;opacity:.4;
+}
+
+/* ── BACKGROUND ORBS ── */
+.orb{position:fixed;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0}
+.orb1{width:600px;height:600px;background:radial-gradient(circle,rgba(255,106,0,.07),transparent 70%);top:-200px;left:-100px;animation:orbFloat 12s ease-in-out infinite}
+.orb2{width:400px;height:400px;background:radial-gradient(circle,rgba(255,106,0,.03),transparent 70%);bottom:20%;right:-100px;animation:orbFloat 15s ease-in-out infinite reverse}
+.orb3{width:300px;height:300px;background:radial-gradient(circle,rgba(255,106,0,.04),transparent 70%);bottom:0;left:30%;animation:orbFloat 10s ease-in-out infinite 3s}
+@keyframes orbFloat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-30px) scale(1.05)}}
+
+/* ── GRID LINES ── */
+body::after{
+  content:'';
+  position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(255,106,0,.018) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,106,0,.018) 1px,transparent 1px);
+  background-size:60px 60px;
+  pointer-events:none;z-index:0;
+}
+
+/* ── LAYOUT ── */
+.wrap{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 24px}
+
+/* ── NAV ── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  padding:16px 0;
+  background:rgba(10,10,10,.85);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid rgba(255,255,255,.05);
+  transition:all .3s;
+}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;max-width:1100px;margin:0 auto;padding:0 24px}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.nav-logo-icon{
+  width:32px;height:32px;
+  background:var(--orange);
+  border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;
+  box-shadow:0 0 20px rgba(255,106,0,.4);
+}
+.nav-logo-text{font-family:var(--display);font-size:22px;color:var(--text);letter-spacing:1px}
+.nav-logo-text span{color:var(--orange)}
+.nav-dl{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 20px;
+  background:var(--orange);
+  color:#000;
+  font-weight:700;font-size:13px;
+  border-radius:100px;
+  text-decoration:none;
+  transition:all .2s;
+  box-shadow:0 0 20px rgba(255,106,0,.3);
+}
+.nav-dl:hover{background:var(--orange2);transform:translateY(-1px);box-shadow:0 4px 24px rgba(255,106,0,.4)}
+.nav-dl svg{width:14px;height:14px}
+
+/* ── HERO ── */
+.hero{
+  min-height:100vh;
+  display:flex;align-items:center;
+  padding:120px 0 80px;
+}
+.hero-inner{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center}
+@media(max-width:768px){.hero-inner{grid-template-columns:1fr;text-align:center}}
+
+.hero-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:6px 14px;
+  background:rgba(255,106,0,.08);
+  border:1px solid rgba(255,106,0,.2);
+  border-radius:100px;
+  font-family:var(--mono);font-size:11px;color:var(--orange);text-shadow:0 0 12px rgba(255,106,0,.5);
+  margin-bottom:24px;
+  animation:fadeUp .6s ease backwards;
+}
+.badge-dot{width:6px;height:6px;border-radius:50%;background:var(--orange);animation:blink 2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+.hero-title{
+  font-family:var(--display);
+  font-size:clamp(64px,9vw,110px);
+  line-height:.95;
+  letter-spacing:1px;
+  margin-bottom:24px;
+  animation:fadeUp .6s ease .1s backwards;
+}
+.hero-title .accent{
+  color:var(--orange);
+  text-shadow:0 0 40px rgba(255,106,0,.4);
+}
+.hero-title .outline{
+  -webkit-text-stroke:1px rgba(255,255,255,.15);
+  color:transparent;
+}
+
+.hero-sub{
+  font-size:17px;line-height:1.6;color:var(--dim);
+  max-width:440px;margin-bottom:40px;font-weight:300;
+  animation:fadeUp .6s ease .2s backwards;
+}
+@media(max-width:768px){.hero-sub{margin:0 auto 40px}}
+
+.hero-cta{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  animation:fadeUp .6s ease .3s backwards;
+}
+@media(max-width:768px){.hero-cta{justify-content:center}}
+
+.btn-primary{
+  display:flex;align-items:center;gap:10px;
+  padding:14px 28px;
+  background:var(--orange);color:#000;
+  font-weight:700;font-size:15px;
+  border-radius:14px;text-decoration:none;
+  transition:all .25s;
+  box-shadow:0 0 30px rgba(255,106,0,.35),0 4px 20px rgba(0,0,0,.3);
+}
+.btn-primary:hover{background:var(--orange2);transform:translateY(-2px);box-shadow:0 0 40px rgba(255,106,0,.5),0 8px 30px rgba(0,0,0,.4)}
+.btn-primary svg{width:20px;height:20px;flex-shrink:0}
+
+.btn-secondary{
+  display:flex;align-items:center;gap:8px;
+  padding:14px 24px;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.1);
+  color:var(--text);font-size:14px;font-weight:500;
+  border-radius:14px;text-decoration:none;
+  transition:all .25s;
+}
+.btn-secondary:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);transform:translateY(-1px)}
+
+.hero-stats{
+  display:flex;gap:32px;margin-top:48px;padding-top:32px;
+  border-top:1px solid rgba(255,255,255,.06);
+  animation:fadeUp .6s ease .4s backwards;
+}
+@media(max-width:768px){.hero-stats{justify-content:center}}
+.stat-num{font-family:var(--display);font-size:36px;color:var(--orange);line-height:1;text-shadow:0 0 20px rgba(255,106,0,.4)}
+.stat-label{font-size:12px;color:var(--dim);margin-top:2px}
+
+/* ── PHONE MOCKUP ── */
+.phone-wrap{
+  position:relative;
+  animation:fadeUp .8s ease .2s backwards;
+}
+@media(max-width:768px){.phone-wrap{display:none}}
+
+.phone{
+  width:260px;margin:0 auto;
+  background:var(--s2);
+  border-radius:40px;
+  border:1px solid rgba(255,255,255,.08);
+  overflow:hidden;
+  box-shadow:
+    0 0 0 1px rgba(255,106,0,.1),
+    0 40px 80px rgba(0,0,0,.6),
+    0 0 60px rgba(255,106,0,.08);
+  position:relative;
+}
+.phone::before{
+  content:'';
+  position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:80px;height:24px;
+  background:var(--bg);
+  border-radius:0 0 16px 16px;
+  z-index:10;
+}
+.phone-screen{padding:32px 0 0;min-height:520px}
+.phone-status{display:flex;justify-content:space-between;padding:0 20px 16px;font-size:10px;color:var(--dim);font-family:var(--mono)}
+.phone-player{padding:20px}
+.phone-cover{
+  width:100%;aspect-ratio:1;
+  border-radius:16px;
+  background:linear-gradient(135deg,#1a1a1a,#222,#111);
+  display:flex;align-items:center;justify-content:center;
+  font-size:48px;margin-bottom:16px;
+  position:relative;overflow:hidden;
+  box-shadow:0 8px 32px rgba(0,0,0,.4);
+}
+.phone-cover::after{
+  content:'';
+  position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,106,0,.1),transparent);
+}
+.vinyl{
+  position:absolute;
+  width:80px;height:80px;
+  border-radius:50%;
+  background:conic-gradient(#0a0a0a 0deg,#1a1a1a 30deg,#0a0a0a 60deg,#1a1a1a 90deg,#0a0a0a 120deg,#1a1a1a 150deg,#0a0a0a 180deg,#1a1a1a 210deg,#0a0a0a 240deg,#1a1a1a 270deg,#0a0a0a 300deg,#1a1a1a 330deg,#0a0a0a 360deg);
+  animation:spin 4s linear infinite;
+  opacity:.6;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.phone-track{font-size:14px;font-weight:700;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.phone-artist{font-size:11px;color:var(--dim);margin-bottom:16px}
+.phone-progress{height:3px;background:rgba(255,255,255,.1);border-radius:100px;margin-bottom:6px;overflow:hidden}
+.phone-progress-fill{height:100%;width:38%;background:var(--orange);border-radius:100px;position:relative}
+.phone-progress-fill::after{content:'';position:absolute;right:-3px;top:50%;transform:translateY(-50%);width:7px;height:7px;background:var(--orange);border-radius:50%}
+.phone-time{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--dim);margin-bottom:20px}
+.phone-controls{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:14px}
+.pc-btn{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .2s;flex-shrink:0}
+.pc-btn.active{background:rgba(255,106,0,.15);color:var(--orange)}
+.pc-play{width:46px;height:46px;background:var(--orange);color:#000;font-size:17px;box-shadow:0 0 20px rgba(255,106,0,.4);flex-shrink:0}
+.pc-extras{display:flex;align-items:center;justify-content:space-around;padding:10px 16px;background:rgba(255,255,255,.02);border-radius:12px;border:1px solid rgba(255,255,255,.05);margin:0 20px 14px;gap:4px}
+.pc-extra-btn{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 4px;border-radius:8px;cursor:pointer;transition:all .2s;flex:1}
+.pc-extra-btn:hover{background:rgba(255,255,255,.05)}
+.pc-extra-btn.on{background:rgba(255,106,0,.08)}
+.pc-extra-icon{font-size:14px;line-height:1}
+.pc-extra-label{font-family:var(--mono);font-size:7px;color:var(--dim);text-align:center;white-space:nowrap}
+.pc-extra-btn.on .pc-extra-label{color:var(--orange)}
+.phone-queue{padding:12px 20px;border-top:1px solid rgba(255,255,255,.06)}
+.pq-title{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);margin-bottom:8px}
+.pq-item{display:flex;align-items:center;gap:8px;padding:5px 0}
+.pq-thumb{width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,#1a1a1a,#333);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+.pq-info{flex:1;min-width:0}
+.pq-track{font-size:10px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pq-artist{font-size:9px;color:var(--dim)}
+.pq-dur{font-family:var(--mono);font-size:9px;color:var(--dim);flex-shrink:0}
+
+/* floating elements */
+.float-card{
+  position:absolute;
+  background:rgba(15,15,15,.95);
+  border:1px solid rgba(255,106,0,.15);
+  border-radius:12px;
+  padding:10px 14px;
+  backdrop-filter:blur(10px);
+  box-shadow:0 8px 32px rgba(0,0,0,.4);
+  animation:cardFloat 3s ease-in-out infinite;
+}
+@keyframes cardFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.fc1{right:-60px;top:60px;animation-delay:0s}
+.fc2{left:-50px;bottom:100px;animation-delay:1.5s}
+.fc-label{font-size:9px;color:var(--dim);font-family:var(--mono);margin-bottom:4px}
+.fc-val{font-size:14px;font-weight:700;color:var(--orange)}
+
+/* ── FEATURES ── */
+.features{padding:100px 0}
+.section-label{
+  font-family:var(--mono);font-size:11px;color:var(--orange);text-shadow:0 0 16px rgba(255,106,0,.4);text-shadow:0 0 12px rgba(255,106,0,.5);
+  letter-spacing:3px;text-transform:uppercase;margin-bottom:16px;
+}
+.section-title{
+  font-family:var(--display);font-size:clamp(42px,6vw,72px);
+  line-height:1;margin-bottom:48px;letter-spacing:.5px;
+}
+.section-title span{color:var(--orange);text-shadow:0 0 30px rgba(255,106,0,.3)}
+
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:900px){.feat-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.feat-grid{grid-template-columns:1fr}}
+
+.feat-card{
+  background:var(--s1);
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:20px;padding:28px;
+  transition:all .3s;
+  position:relative;overflow:hidden;
+}
+.feat-card::before{
+  content:'';
+  position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,106,0,.3),transparent);
+  opacity:0;transition:opacity .3s;
+}
+.feat-card:hover{border-color:rgba(255,106,0,.15);transform:translateY(-4px);background:var(--s2)}
+.feat-card:hover::before{opacity:1}
+.feat-icon{
+  width:48px;height:48px;border-radius:12px;
+  background:rgba(255,106,0,.08);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;margin-bottom:20px;
+  border:1px solid rgba(255,106,0,.1);
+}
+.feat-name{font-size:16px;font-weight:700;margin-bottom:8px}
+.feat-desc{font-size:13px;color:var(--dim);line-height:1.6;font-weight:300}
+
+/* ── SHARED TRACK ── */
+.shared{padding:100px 0;background:var(--s1);margin:0 -24px;padding-left:24px;padding-right:24px}
+.shared-inner{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;max-width:1100px;margin:0 auto}
+@media(max-width:768px){.shared-inner{grid-template-columns:1fr}}
+
+.track-card{
+  background:var(--s2);
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:24px;padding:28px;
+  position:relative;overflow:hidden;
+}
+.track-card::after{
+  content:'';
+  position:absolute;bottom:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--orange),transparent 80%);
+}
+.track-cover{
+  width:100%;aspect-ratio:1;max-width:200px;
+  border-radius:16px;
+  background:linear-gradient(135deg,#1a1a1a,#222,#333);
+  display:flex;align-items:center;justify-content:center;
+  font-size:64px;margin:0 auto 24px;
+  box-shadow:0 16px 48px rgba(0,0,0,.5);
+  position:relative;overflow:hidden;
+}
+.track-cover::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,106,0,.08),transparent)}
+.track-title{font-size:22px;font-weight:700;margin-bottom:4px;text-align:center}
+.track-artist{font-size:14px;color:var(--dim);text-align:center;margin-bottom:24px}
+.track-bar{height:4px;background:rgba(255,255,255,.08);border-radius:100px;margin-bottom:8px;overflow:hidden}
+.track-fill{height:100%;width:55%;background:var(--orange);border-radius:100px}
+.track-times{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--dim);margin-bottom:20px}
+.track-btns{display:flex;gap:8px}
+.track-play{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:12px;background:var(--orange);color:#000;
+  font-weight:700;font-size:13px;border-radius:12px;
+  text-decoration:none;transition:all .2s;
+}
+.track-play:hover{background:var(--orange2);transform:translateY(-1px)}
+.track-dl{
+  display:flex;align-items:center;justify-content:center;
+  width:44px;height:44px;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:12px;text-decoration:none;font-size:16px;
+  transition:all .2s;
+}
+.track-dl:hover{background:rgba(255,255,255,.1)}
+
+.shared-text .section-label{margin-bottom:12px}
+.shared-text .section-title{margin-bottom:16px}
+.shared-text p{font-size:15px;color:var(--dim);line-height:1.7;margin-bottom:24px;font-weight:300}
+.steps{display:flex;flex-direction:column;gap:16px;margin-top:32px}
+.step{display:flex;align-items:flex-start;gap:16px}
+.step-num{
+  width:32px;height:32px;flex-shrink:0;
+  background:rgba(255,106,0,.08);
+  border:1px solid rgba(255,106,0,.2);
+  border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:12px;font-weight:700;color:var(--orange);
+}
+.step-text{font-size:14px;color:var(--dim);line-height:1.5;padding-top:6px}
+.step-text strong{color:var(--text)}
+
+/* ── DOWNLOAD ── */
+.download{padding:100px 0;text-align:center}
+.dl-card{
+  max-width:600px;margin:0 auto;
+  background:var(--s1);
+  border:1px solid rgba(255,106,0,.12);
+  border-radius:32px;
+  padding:60px 40px;
+  position:relative;overflow:hidden;
+}
+.dl-card::before{
+  content:'';
+  position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--orange),transparent);
+}
+.dl-glow{
+  position:absolute;top:-100px;left:50%;transform:translateX(-50%);
+  width:400px;height:400px;
+  background:radial-gradient(circle,rgba(255,106,0,.06),transparent 70%);
+  pointer-events:none;
+}
+.dl-icon{font-size:64px;margin-bottom:24px;display:block}
+.dl-title{font-family:var(--display);font-size:56px;margin-bottom:12px;letter-spacing:1px}
+.dl-title span{color:var(--orange)}
+.dl-sub{font-size:15px;color:var(--dim);margin-bottom:40px;line-height:1.6;font-weight:300}
+.dl-btn{
+  display:inline-flex;align-items:center;gap:12px;
+  padding:16px 36px;
+  background:var(--orange);color:#000;
+  font-weight:700;font-size:16px;
+  border-radius:16px;text-decoration:none;
+  transition:all .25s;
+  box-shadow:0 0 40px rgba(255,106,0,.3),0 8px 32px rgba(0,0,0,.3);
+  margin-bottom:20px;
+}
+.dl-btn:hover{background:var(--orange2);transform:translateY(-3px);box-shadow:0 0 60px rgba(255,106,0,.4),0 12px 40px rgba(0,0,0,.4)}
+.dl-btn svg{width:22px;height:22px;flex-shrink:0}
+.dl-meta{display:flex;align-items:center;justify-content:center;gap:20px;flex-wrap:wrap}
+.dl-tag{
+  display:flex;align-items:center;gap:6px;
+  font-family:var(--mono);font-size:11px;color:var(--dim);
+}
+.dl-tag svg{width:12px;height:12px;color:var(--orange)}
+
+/* ── FOOTER ── */
+footer{
+  padding:40px 0;
+  border-top:1px solid rgba(255,255,255,.05);
+  text-align:center;
+}
+.footer-logo{font-family:var(--display);font-size:28px;letter-spacing:1px;margin-bottom:8px}
+.footer-logo span{color:var(--orange)}
+.footer-sub{font-size:12px;color:var(--dim);font-family:var(--mono)}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+
+/* ── PLAYER SECTION ── */
+.player-section{padding:100px 0;background:var(--s1)}
+
+.player-box{
+  max-width:680px;margin:0 auto;
+  background:var(--s2);
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:28px;
+  overflow:hidden;
+  box-shadow:0 40px 80px rgba(0,0,0,.5),0 0 0 1px rgba(255,106,0,.06);
+}
+
+/* search */
+.ps-search{position:relative;padding:20px 20px 0}
+.ps-input-wrap{
+  display:flex;align-items:center;gap:10px;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:14px;padding:12px 16px;
+  transition:border-color .2s;
+}
+.ps-input-wrap:focus-within{border-color:rgba(255,106,0,.4);box-shadow:0 0 0 3px rgba(255,106,0,.08)}
+.ps-search-icon{font-size:16px;flex-shrink:0}
+.ps-input{
+  flex:1;background:none;border:none;outline:none;
+  color:var(--text);font-family:var(--body);font-size:15px;
+}
+.ps-input::placeholder{color:#555}
+.ps-clear{background:none;border:none;color:#555;cursor:pointer;font-size:14px;padding:0;transition:color .2s}
+.ps-clear:hover{color:var(--text)}
+
+.ps-results{
+  position:absolute;left:20px;right:20px;top:calc(100% - 4px);
+  background:var(--s2);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:0 0 16px 16px;
+  border-top:none;
+  z-index:50;
+  max-height:320px;overflow-y:auto;
+  display:none;
+  scrollbar-width:thin;scrollbar-color:rgba(255,106,0,.2) transparent;
+}
+.ps-results.open{display:block}
+
+.ps-result-item{
+  display:flex;align-items:center;gap:12px;
+  padding:10px 16px;cursor:pointer;
+  transition:background .15s;
+  border-bottom:1px solid rgba(255,255,255,.04);
+}
+.ps-result-item:last-child{border-bottom:none}
+.ps-result-item:hover{background:rgba(255,106,0,.06)}
+.ps-result-item.playing{background:rgba(255,106,0,.08)}
+.psr-thumb{
+  width:40px;height:40px;border-radius:8px;
+  object-fit:cover;flex-shrink:0;
+  background:var(--s3);
+}
+.psr-info{flex:1;min-width:0}
+.psr-title{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.psr-artist{font-size:11px;color:#666;margin-top:2px}
+.psr-dur{font-family:var(--mono);font-size:10px;color:#555;flex-shrink:0}
+.psr-play-ico{font-size:18px;color:var(--orange);flex-shrink:0;opacity:0;transition:opacity .2s}
+.ps-result-item:hover .psr-play-ico{opacity:1}
+.ps-result-item.playing .psr-play-ico{opacity:1}
+.ps-loading{padding:20px;text-align:center;font-family:var(--mono);font-size:12px;color:#555}
+
+/* player */
+.ps-player{padding:24px 28px 0}
+.ps-cover-wrap{
+  position:relative;
+  width:180px;height:180px;
+  margin:0 auto 20px;
+  border-radius:20px;overflow:hidden;
+  box-shadow:0 16px 48px rgba(0,0,0,.6),0 0 30px rgba(255,106,0,.1);
+}
+.ps-cover{width:100%;height:100%;object-fit:cover;display:block}
+.ps-cover-overlay{position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,106,0,.08),transparent)}
+.ps-vinyl{
+  position:absolute;inset:0;
+  background:conic-gradient(rgba(0,0,0,.6) 0deg,rgba(0,0,0,.3) 30deg,rgba(0,0,0,.6) 60deg,rgba(0,0,0,.3) 90deg,rgba(0,0,0,.6) 120deg,rgba(0,0,0,.3) 150deg,rgba(0,0,0,.6) 180deg,rgba(0,0,0,.3) 210deg,rgba(0,0,0,.6) 240deg,rgba(0,0,0,.3) 270deg,rgba(0,0,0,.6) 300deg,rgba(0,0,0,.3) 330deg);
+  border-radius:50%;
+  opacity:0;transition:opacity .4s;
+  animation:spin 3s linear infinite;
+  animation-play-state:paused;
+}
+.ps-vinyl.spinning{opacity:.3;animation-play-state:running}
+
+.ps-info{text-align:center;margin-bottom:20px}
+.ps-track{font-size:18px;font-weight:700;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ps-artist{font-size:13px;color:#666}
+
+.ps-progress-wrap{margin-bottom:20px}
+.ps-bar{
+  position:relative;height:4px;
+  background:rgba(255,255,255,.08);
+  border-radius:100px;margin-bottom:8px;
+  cursor:pointer;
+}
+.ps-bar:hover .ps-bar-thumb{opacity:1;transform:translateY(-50%) scale(1)}
+.ps-bar-fill{
+  position:absolute;left:0;top:0;height:100%;
+  background:var(--orange);border-radius:100px;
+  transition:width .2s linear;
+  box-shadow:0 0 8px rgba(255,106,0,.4);
+}
+.ps-bar-thumb{
+  position:absolute;top:50%;
+  width:12px;height:12px;margin-left:-6px;
+  background:var(--orange);border-radius:50%;
+  transform:translateY(-50%) scale(0.7);
+  opacity:0;transition:all .2s;
+  box-shadow:0 0 12px rgba(255,106,0,.6);
+}
+.ps-times{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:#555}
+
+.ps-controls{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:16px}
+.ps-btn{
+  width:36px;height:36px;border-radius:50%;
+  background:rgba(255,255,255,.05);border:none;
+  color:var(--text);font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s;
+}
+.ps-btn:hover{background:rgba(255,255,255,.1);transform:scale(1.05)}
+.ps-btn-play{
+  width:52px;height:52px;font-size:20px;
+  background:var(--orange);color:#000;
+  box-shadow:0 0 24px rgba(255,106,0,.4);
+}
+.ps-btn-play:hover{background:var(--orange2);box-shadow:0 0 32px rgba(255,106,0,.6)}
+.ps-btn:disabled{opacity:.3;cursor:not-allowed;transform:none}
+
+.ps-actions{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  padding-bottom:20px;
+}
+.ps-action-btn{
+  background:none;border:none;font-size:16px;cursor:pointer;
+  padding:6px;border-radius:8px;transition:all .2s;
+  opacity:.4;
+}
+.ps-action-btn:hover{opacity:.8;background:rgba(255,255,255,.05)}
+.ps-action-btn.active{opacity:1;filter:drop-shadow(0 0 6px rgba(255,106,0,.6))}
+.ps-volume{
+  width:80px;height:3px;
+  accent-color:var(--orange);cursor:pointer;
+  opacity:.6;transition:opacity .2s;
+}
+.ps-volume:hover{opacity:1}
+
+.ps-dl-cta{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 28px;
+  background:rgba(255,106,0,.06);
+  border-top:1px solid rgba(255,106,0,.1);
+  text-decoration:none;color:var(--text);
+  font-size:13px;font-weight:500;
+  transition:background .2s;
+}
+.ps-dl-cta:hover{background:rgba(255,106,0,.1)}
+.ps-cta-arrow{color:var(--orange);font-size:16px}
+
+/* empty state */
+.ps-empty{padding:60px 28px;text-align:center}
+.ps-empty-icon{font-size:48px;margin-bottom:16px;opacity:.3}
+.ps-empty-title{font-size:16px;font-weight:600;margin-bottom:6px;color:#888}
+.ps-empty-sub{font-size:13px;color:#555;margin-bottom:24px}
+.ps-suggestions{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.ps-sug{
+  padding:6px 14px;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:100px;font-size:12px;color:#888;
+  cursor:pointer;transition:all .2s;
+}
+.ps-sug:hover{background:rgba(255,106,0,.08);border-color:rgba(255,106,0,.2);color:var(--orange)}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:rgba(255,106,0,.2);border-radius:4px}
+</style>
+</head>
+<body>
+
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="orb orb3"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a href="#" class="nav-logo">
+      <div class="nav-logo-icon">🎵</div>
+      <span class="nav-logo-text">Musicz</span>
+    </a>
+    <a href="#download" class="nav-dl">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 3v13M5 14l7 7 7-7"/><path d="M3 21h18"/></svg>
+      Baixar Grátis
+    </a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="wrap">
+    <div class="hero-inner">
+      <div class="hero-content">
+        <div class="hero-badge">
+          <span class="badge-dot"></span>
+          Versão 1.0 disponível para Android
+        </div>
+        <h1 class="hero-title">
+          TODA<br>
+          <span class="accent">MÚSICA</span><br>
+          <span class="outline">NA PALMA</span><br>
+          DA MÃO
+        </h1>
+        <p class="hero-sub">Ouça qualquer artista, qualquer álbum, qualquer momento. Crie playlists, baixe offline e compartilhe o que você está ouvindo.</p>
+        <div class="hero-cta">
+          <a href="#download" class="btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 3v13M5 14l7 7 7-7"/><path d="M3 21h18"/></svg>
+            Baixar para Android
+          </a>
+          <a href="#features" class="btn-secondary">Ver funcionalidades</a>
+        </div>
+        <div class="hero-stats">
+          <div>
+            <div class="stat-num">100%</div>
+            <div class="stat-label">Gratuito</div>
+          </div>
+          <div>
+            <div class="stat-num">∞</div>
+            <div class="stat-label">Músicas</div>
+          </div>
+          <div>
+            <div class="stat-num">0</div>
+            <div class="stat-label">Anúncios</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PHONE -->
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="phone-status">
+              <span>9:41</span>
+              <span>●●● 100%</span>
+            </div>
+            <div class="phone-player">
+              <div class="phone-cover">
+                <div class="vinyl"></div>
+                <span style="position:relative;z-index:1;font-size:40px">🎵</span>
+              </div>
+              <div class="phone-track">Blinding Lights</div>
+              <div class="phone-artist">The Weeknd</div>
+              <div class="phone-progress">
+                <div class="phone-progress-fill"></div>
+              </div>
+              <div class="phone-time"><span>1:24</span><span>3:40</span></div>
+              <div class="phone-controls">
+                <div class="pc-btn" title="Anterior">⏮</div>
+                <div class="pc-btn pc-play">▶</div>
+                <div class="pc-btn" title="Próxima">⏭</div>
+              </div>
+
+              <!-- BOTÕES EXTRAS -->
+              <div class="pc-extras">
+                <div class="pc-extra-btn active on" id="pbtn-repeat">
+                  <span class="pc-extra-icon">🔁</span>
+                  <span class="pc-extra-label">Repetir</span>
+                </div>
+                <div class="pc-extra-btn" id="pbtn-shuffle">
+                  <span class="pc-extra-icon">🔀</span>
+                  <span class="pc-extra-label">Aleatório</span>
+                </div>
+                <div class="pc-extra-btn" id="pbtn-timer">
+                  <span class="pc-extra-icon">⏱</span>
+                  <span class="pc-extra-label">Timer</span>
+                </div>
+                <div class="pc-extra-btn on" id="pbtn-radio">
+                  <span class="pc-extra-icon">📻</span>
+                  <span class="pc-extra-label">Rádio</span>
+                </div>
+                <div class="pc-extra-btn" id="pbtn-lyrics">
+                  <span class="pc-extra-icon">🎤</span>
+                  <span class="pc-extra-label">Letra</span>
+                </div>
+                <div class="pc-extra-btn" id="pbtn-translate">
+                  <span class="pc-extra-icon">🌐</span>
+                  <span class="pc-extra-label">Tradução</span>
+                </div>
+              </div>
+
+            </div>
+            <div class="phone-queue">
+              <div class="pq-title">A seguir</div>
+              <div class="pq-item">
+                <div class="pq-thumb">🎸</div>
+                <div class="pq-info"><div class="pq-track">Save Your Tears</div><div class="pq-artist">The Weeknd</div></div>
+                <div class="pq-dur">3:35</div>
+              </div>
+              <div class="pq-item">
+                <div class="pq-thumb">🎹</div>
+                <div class="pq-info"><div class="pq-track">Starboy</div><div class="pq-artist">The Weeknd</div></div>
+                <div class="pq-dur">3:50</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- floating cards -->
+        <div class="float-card fc1">
+          <div class="fc-label">Qualidade</div>
+          <div class="fc-val">320kbps</div>
+        </div>
+        <div class="float-card fc2">
+          <div class="fc-label">Modo offline</div>
+          <div class="fc-val">✓ Ativo</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="section-label">Funcionalidades</div>
+      <div class="section-title">TUDO QUE VOCÊ<br><span>PRECISA</span></div>
+    </div>
+    <div class="feat-grid">
+      <div class="feat-card reveal">
+        <div class="feat-icon">🔍</div>
+        <div class="feat-name">Busca Instantânea</div>
+        <div class="feat-desc">Encontre qualquer música, artista ou álbum em segundos. Resultados precisos com sugestões inteligentes.</div>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon">📋</div>
+        <div class="feat-name">Playlists</div>
+        <div class="feat-desc">Crie e organize suas playlists. Arraste para reordenar, adicione capas e compartilhe com amigos.</div>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon">⬇️</div>
+        <div class="feat-name">Download Offline</div>
+        <div class="feat-desc">Salve suas músicas favoritas e ouça sem internet. Perfeito para viagens e economizar dados.</div>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon">♥️</div>
+        <div class="feat-name">Favoritos</div>
+        <div class="feat-desc">Curta músicas e acesse rapidamente sua coleção. Sincronizado em todos os seus dispositivos.</div>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon">🎨</div>
+        <div class="feat-name">Interface Bonita</div>
+        <div class="feat-desc">Design moderno com tema escuro. Animações suaves e cores que se adaptam à capa do álbum.</div>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon">🔗</div>
+        <div class="feat-name">Compartilhar</div>
+        <div class="feat-desc">Compartilhe o que está ouvindo com um link. Quem não tem o app pode baixar direto pelo link.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SHARED TRACK -->
+<section class="shared">
+  <div class="shared-inner">
+    <div class="reveal">
+      <div class="track-card">
+        <div class="track-cover">🎵</div>
+        <div class="track-title">As It Was</div>
+        <div class="track-artist">Harry Styles</div>
+        <div class="track-bar"><div class="track-fill"></div></div>
+        <div class="track-times"><span>1:47</span><span>2:37</span></div>
+        <div class="track-btns">
+          <a href="#download" class="track-play">
+            ▶ Ouvir no Musicz
+          </a>
+          <a href="#download" class="track-dl">⬇</a>
+        </div>
+      </div>
+    </div>
+    <div class="shared-text reveal">
+      <div class="section-label">Link de compartilhamento</div>
+      <div class="section-title">ALGUÉM<br>COMPARTILHOU<br><span>COM VOCÊ</span></div>
+      <p>Quando um amigo compartilha uma música pelo Musicz, você recebe um link que abre direto no player — ou instala o app em segundos.</p>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">01</div>
+          <div class="step-text"><strong>Receba o link</strong> — seu amigo compartilhou uma música com você</div>
+        </div>
+        <div class="step">
+          <div class="step-num">02</div>
+          <div class="step-text"><strong>Baixe o Musicz</strong> — grátis, sem cadastro, sem cartão</div>
+        </div>
+        <div class="step">
+          <div class="step-num">03</div>
+          <div class="step-text"><strong>Ouça juntos</strong> — acesse a música compartilhada e descubra milhões de outras</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DOWNLOAD -->
+<section class="download" id="download">
+  <div class="wrap">
+    <div class="dl-card reveal">
+      <div class="dl-glow"></div>
+      <span class="dl-icon">🎵</span>
+      <div class="dl-title">BAIXE O <span>MUSICZ</span></div>
+      <p class="dl-sub">Grátis para Android. Sem anúncios, sem assinatura.<br>Instale em segundos e comece a ouvir.</p>
+      <!-- ATUALIZE O HREF COM A URL DO SEU APK NO GITHUB RELEASES -->
+      <a href="https://github.com/SEU-USUARIO/musicz/releases/latest/download/musicz.apk" class="dl-btn" id="dlBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 3v13M5 14l7 7 7-7"/><path d="M3 21h18"/></svg>
+        Baixar APK — Android
+      </a>
+      <div class="dl-meta">
+        <div class="dl-tag">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          100% seguro
+        </div>
+        <div class="dl-tag">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+          Instalação em 30s
+        </div>
+        <div class="dl-tag">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          Grátis para sempre
+        </div>
+        <div class="dl-tag" id="versionTag" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          <span id="versionText">v1.0.0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PLAYER -->
+<section class="player-section" id="player">
+  <div class="wrap">
+    <div class="reveal" style="text-align:center;margin-bottom:48px">
+      <div class="section-label">Experimente agora</div>
+      <div class="section-title">SENTE O<br><span>SABOR</span></div>
+      <p style="font-size:15px;color:#888;font-weight:300;max-width:480px;margin:0 auto">Busque qualquer música e ouça direto aqui. Sem cadastro, sem limite. É assim que o app funciona.</p>
+    </div>
+
+    <div class="player-box reveal">
+      <!-- SEARCH -->
+      <div class="ps-search">
+        <div class="ps-input-wrap">
+          <span class="ps-search-icon">🔍</span>
+          <input class="ps-input" id="psInput" type="text" placeholder="Buscar artista, música ou álbum..." autocomplete="off">
+          <button class="ps-clear" id="psClear" style="display:none">✕</button>
+        </div>
+        <div class="ps-results" id="psResults"></div>
+      </div>
+
+      <!-- NOW PLAYING -->
+      <div class="ps-player" id="psPlayer" style="display:none">
+        <div class="ps-cover-wrap">
+          <img class="ps-cover" id="psCover" src="" alt="">
+          <div class="ps-cover-overlay"></div>
+          <div class="ps-vinyl" id="psVinyl"></div>
+        </div>
+        <div class="ps-info">
+          <div class="ps-track" id="psTrack">—</div>
+          <div class="ps-artist" id="psArtist">—</div>
+        </div>
+        <div class="ps-progress-wrap">
+          <div class="ps-bar" id="psBar">
+            <div class="ps-bar-fill" id="psBarFill" style="width:0%"></div>
+            <div class="ps-bar-thumb" id="psBarThumb" style="left:0%"></div>
+          </div>
+          <div class="ps-times">
+            <span id="psCurrent">0:00</span>
+            <span id="psDuration">0:00</span>
+          </div>
+        </div>
+        <div class="ps-controls">
+          <button class="ps-btn" id="psBtnPrev" title="Anterior">⏮</button>
+          <button class="ps-btn ps-btn-play" id="psBtnPlay">▶</button>
+          <button class="ps-btn" id="psBtnNext" title="Próxima">⏭</button>
+        </div>
+        <div class="ps-actions">
+          <button class="ps-action-btn" id="psBtnShuffle" title="Aleatório">🔀</button>
+          <button class="ps-action-btn active" id="psBtnRepeat" title="Repetir">🔁</button>
+          <button class="ps-action-btn" id="psBtnVol" title="Volume">🔊</button>
+          <input class="ps-volume" id="psVolume" type="range" min="0" max="1" step="0.01" value="0.8">
+        </div>
+        <a href="#download" class="ps-dl-cta">
+          <span>📱 Baixe o app para ouvir sem limite</span>
+          <span class="ps-cta-arrow">→</span>
+        </a>
+      </div>
+
+      <!-- EMPTY STATE -->
+      <div class="ps-empty" id="psEmpty">
+        <div class="ps-empty-icon">🎵</div>
+        <div class="ps-empty-title">Busque uma música acima</div>
+        <div class="ps-empty-sub">Milhões de músicas disponíveis</div>
+        <div class="ps-suggestions">
+          <span class="ps-sug" onclick="quickSearch('The Weeknd')">The Weeknd</span>
+          <span class="ps-sug" onclick="quickSearch('Dua Lipa')">Dua Lipa</span>
+          <span class="ps-sug" onclick="quickSearch('Bad Bunny')">Bad Bunny</span>
+          <span class="ps-sug" onclick="quickSearch('Eminem')">Eminem</span>
+          <span class="ps-sug" onclick="quickSearch('Anitta')">Anitta</span>
+          <span class="ps-sug" onclick="quickSearch('MC Cabelinho')">MC Cabelinho</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap">
+    <div class="footer-logo">Musicz<span>.</span></div>
+    <div class="footer-sub">Feito com ♥ · Grátis para sempre · Android</div>
+  </div>
+</footer>
+
+<script>
+// ── Phone buttons toggle ──
+document.querySelectorAll('.pc-extra-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    btn.classList.toggle('on');
+  });
+});
+
+// ── Animate progress bar ──
+let prog = 38;
+setInterval(()=>{
+  prog = (prog + 0.1) % 100;
+  const fill = document.querySelector('.phone-progress-fill');
+  if(fill) fill.style.width = prog + '%';
+  // update time
+  const total = 220; // 3:40
+  const current = Math.floor(total * prog / 100);
+  const m = Math.floor(current/60);
+  const s = current % 60;
+  const times = document.querySelectorAll('.phone-time span');
+  if(times[0]) times[0].textContent = m+':'+String(s).padStart(2,'0');
+}, 300);
+
+// ── PLAYER ──
+const BACKEND = 'https://musicz-production.up.railway.app';
+const audio = new Audio();
+audio.volume = 0.8;
+
+let queue = [];
+let currentIdx = -1;
+let isPlaying = false;
+let isShuffle = false;
+let isRepeat = true;
+let searchTimeout = null;
+
+const $ = id => document.getElementById(id);
+
+// format seconds to m:ss
+const fmtTime = s => {
+  if(!s||isNaN(s)) return '0:00';
+  const m = Math.floor(s/60), sec = Math.floor(s%60);
+  return m+':'+String(sec).padStart(2,'0');
+};
+
+// ── SEARCH ──
+$('psInput').addEventListener('input', e => {
+  const q = e.target.value.trim();
+  $('psClear').style.display = q ? 'block' : 'none';
+  clearTimeout(searchTimeout);
+  if(!q){ closeResults(); return; }
+  searchTimeout = setTimeout(()=>doSearch(q), 380);
+});
+
+$('psInput').addEventListener('keydown', e => {
+  if(e.key==='Enter'){ clearTimeout(searchTimeout); doSearch($('psInput').value.trim()); }
+  if(e.key==='Escape'){ closeResults(); $('psInput').blur(); }
+});
+
+$('psClear').addEventListener('click', ()=>{
+  $('psInput').value=''; $('psClear').style.display='none'; closeResults();
+});
+
+async function doSearch(q){
+  if(!q) return;
+  showResults('<div class="ps-loading">🔍 Buscando...</div>');
+  try{
+    const r = await fetch(`${BACKEND}/search?q=${encodeURIComponent(q)}`);
+    const data = await r.json();
+    renderResults(data.results||[]);
+    queue = data.results||[];
+  }catch(e){
+    showResults('<div class="ps-loading">⚠ Erro ao buscar. Tente novamente.</div>');
+  }
+}
+
+function renderResults(results){
+  if(!results.length){ showResults('<div class="ps-loading">Nenhum resultado</div>'); return; }
+  const html = results.map((t,i)=>`
+    <div class="ps-result-item ${i===currentIdx?'playing':''}" onclick="playTrack(${i})" data-idx="${i}">
+      <img class="psr-thumb" src="${t.thumbnail}" onerror="this.src=''" loading="lazy">
+      <div class="psr-info">
+        <div class="psr-title">${t.title}</div>
+        <div class="psr-artist">${t.artist||'—'}</div>
+      </div>
+      <span class="psr-dur">${fmtTime(t.duration)}</span>
+      <span class="psr-play-ico">${i===currentIdx&&isPlaying?'▶':'▶'}</span>
+    </div>`).join('');
+  showResults(html);
+}
+
+function showResults(html){
+  const el = $('psResults');
+  el.innerHTML = html;
+  el.classList.add('open');
+}
+function closeResults(){ $('psResults').classList.remove('open'); }
+
+// close on outside click
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.ps-search')) closeResults();
+});
+
+window.quickSearch = q => {
+  $('psInput').value = q;
+  $('psClear').style.display = 'block';
+  $('psInput').scrollIntoView({behavior:'smooth', block:'center'});
+  doSearch(q);
+};
+
+// ── PLAY ──
+async function playTrack(idx){
+  if(idx<0||idx>=queue.length) return;
+  currentIdx = idx;
+  const track = queue[idx];
+
+  // show player, hide empty
+  $('psPlayer').style.display = 'block';
+  $('psEmpty').style.display = 'none';
+  $('psTrack').textContent = track.title;
+  $('psArtist').textContent = track.artist||'—';
+  $('psCover').src = track.thumbnail;
+  $('psBtnPlay').textContent = '⏸';
+  $('psVinyl').classList.add('spinning');
+  isPlaying = true;
+
+  // update results highlight
+  document.querySelectorAll('.ps-result-item').forEach((el,i)=>{
+    el.classList.toggle('playing', i===idx);
+  });
+
+  // fetch stream url
+  try{
+    audio.pause();
+    $('psBtnPlay').textContent='⏳';
+
+    const r = await fetch(`${BACKEND}/stream-url?v=${track.id}`);
+    const data = await r.json();
+
+    let url = data.directUrl || (BACKEND + '/proxy?v=' + track.id);
+    audio.src = url;
+    audio.volume = parseFloat($('psVolume').value);
+
+    try{
+      await audio.play();
+      $('psBtnPlay').textContent='⏸';
+    }catch(err){
+      // fallback to proxy
+      audio.src = BACKEND + '/proxy?v=' + track.id;
+      await audio.play();
+      $('psBtnPlay').textContent='⏸';
+    }
+  }catch(e){
+    console.error('[Player]', e);
+    $('psBtnPlay').textContent='▶';
+    $('psVinyl').classList.remove('spinning');
+    isPlaying = false;
+  }
+}
+
+// ── AUDIO EVENTS ──
+audio.addEventListener('timeupdate', ()=>{
+  if(!audio.duration) return;
+  const pct = (audio.currentTime/audio.duration)*100;
+  $('psBarFill').style.width = pct+'%';
+  $('psBarThumb').style.left = pct+'%';
+  $('psCurrent').textContent = fmtTime(audio.currentTime);
+  $('psDuration').textContent = fmtTime(audio.duration);
+});
+
+audio.addEventListener('ended', ()=>{
+  if(isRepeat){ audio.currentTime=0; audio.play(); return; }
+  if(isShuffle){ playTrack(Math.floor(Math.random()*queue.length)); return; }
+  if(currentIdx < queue.length-1) playTrack(currentIdx+1);
+  else{ isPlaying=false; $('psBtnPlay').textContent='▶'; $('psVinyl').classList.remove('spinning'); }
+});
+
+audio.addEventListener('pause', ()=>{
+  $('psBtnPlay').textContent='▶';
+  $('psVinyl').classList.remove('spinning');
+  isPlaying=false;
+});
+audio.addEventListener('play', ()=>{
+  $('psBtnPlay').textContent='⏸';
+  $('psVinyl').classList.add('spinning');
+  isPlaying=true;
+});
+
+// ── CONTROLS ──
+$('psBtnPlay').addEventListener('click', ()=>{
+  if(currentIdx<0&&queue.length>0){ playTrack(0); return; }
+  if(audio.paused) audio.play(); else audio.pause();
+});
+$('psBtnPrev').addEventListener('click', ()=>{
+  if(audio.currentTime>3){ audio.currentTime=0; return; }
+  playTrack(isShuffle?Math.floor(Math.random()*queue.length):Math.max(0,currentIdx-1));
+});
+$('psBtnNext').addEventListener('click', ()=>{
+  playTrack(isShuffle?Math.floor(Math.random()*queue.length):Math.min(queue.length-1,currentIdx+1));
+});
+
+// progress bar seek
+$('psBar').addEventListener('click', e=>{
+  if(!audio.duration) return;
+  const rect = $('psBar').getBoundingClientRect();
+  audio.currentTime = ((e.clientX-rect.left)/rect.width)*audio.duration;
+});
+
+// volume
+$('psVolume').addEventListener('input', e=>{ audio.volume=e.target.value; });
+
+// shuffle & repeat
+$('psBtnShuffle').addEventListener('click', ()=>{
+  isShuffle=!isShuffle;
+  $('psBtnShuffle').classList.toggle('active',isShuffle);
+});
+$('psBtnRepeat').addEventListener('click', ()=>{
+  isRepeat=!isRepeat;
+  $('psBtnRepeat').classList.toggle('active',isRepeat);
+});
+
+// ── Scroll reveal ──
+const observer = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');observer.unobserve(e.target)}});
+},{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
+
+// ── Busca versão mais recente no GitHub Releases ──
+// ATUALIZE COM SEU USUÁRIO E REPOSITÓRIO
+const GITHUB_USER = 'SEU-USUARIO';
+const GITHUB_REPO = 'musicz';
+
+async function fetchLatestRelease(){
+  try{
+    const r = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/releases/latest`);
+    if(!r.ok) return;
+    const data = await r.json();
+    const version = data.tag_name || '';
+    // Busca o APK nos assets
+    const apk = data.assets?.find(a=>a.name.endsWith('.apk'));
+    if(apk){
+      document.getElementById('dlBtn').href = apk.browser_download_url;
+      document.getElementById('nav-dl')?.setAttribute('href', apk.browser_download_url);
+    }
+    if(version){
+      document.getElementById('versionText').textContent = version;
+      document.getElementById('versionTag').style.display = 'flex';
+    }
+  }catch(e){
+    console.log('[Release] Não foi possível buscar versão:', e.message);
+  }
+}
+fetchLatestRelease();
+
+// ── Detecta se veio de um link de música compartilhada ──
+// Ex: musicz.github.io/musicz?track=dQw4w9WgXcQ
+const params = new URLSearchParams(window.location.search);
+const trackId = params.get('track') || params.get('v');
+if(trackId){
+  // Mostra card da música compartilhada no topo
+  document.querySelector('.track-cover').style.background =
+    'linear-gradient(135deg,#0d1b2a,#1b263b,#415a77)';
+  // Aqui você pode buscar info da música via seu backend se quiser
+  console.log('[Share] Track ID:', trackId);
+}
+</script>
+</body>
+</html>
